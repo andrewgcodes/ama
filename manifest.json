@@ -1,0 +1,21 @@
+{
+    "manifest_version": 3,
+    "name": "Ask Me Anything AI",
+    "version": "1.1",
+    "description": "Ask any question about the website you're looking at. Powered by Firecrawl and GPT-4o-mini.",
+    "permissions": ["activeTab", "storage"],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "iconsFire/icon16.png",
+        "32": "iconsFire/icon32.png",
+        "48": "iconsFire/icon48.png",
+        "128": "iconsFire/icon128.png"
+      }
+    },
+    "options_page": "options.html"
+  }
+  

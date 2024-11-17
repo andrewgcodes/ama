@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Extension Settings</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f7f7f7;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #f52900;
+            margin-bottom: 25px;
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #f52900;
+            box-shadow: 0 0 0 2px rgba(245, 41, 0, 0.1);
+        }
+
+        button {
+            background-color: #f52900;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            background-color: #d62400;
+        }
+
+        .info-text {
+            margin-top: 20px;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .success-message {
+            display: none;
+            background-color: #4caf50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            text-align: center;
+            animation: fadeOut 3s forwards;
+        }
+
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            70% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>API Settings</h1>
+        
+        <div class="form-group">
+            <label for="firecrawlKey">Firecrawl API Key</label>
+            <input type="password" id="firecrawlKey" placeholder="Enter your Firecrawl API key">
+        </div>
+
+        <div class="form-group">
+            <label for="openaiKey">OpenAI API Key</label>
+            <input type="password" id="openaiKey" placeholder="Enter your OpenAI API key">
+        </div>
+
+        <div class="form-group">
+            <label for="maxDepth">Crawling Depth (maxDepth)</label>
+            <input type="number" id="maxDepth" placeholder="Enter max depth (e.g., 3)" min="1">
+        </div>
+        
+        <div class="form-group">
+            <label for="limit">Page Limit</label>
+            <input type="number" id="limit" placeholder="Enter page limit (e.g., 50)" min="1">
+        </div>
+        
+        <div class="form-group">
+            <label for="maxContentLength">Max Characters for LLM (default: 250,000, max: 500,000)</label>
+            <input type="number" id="maxContentLength" placeholder="Enter max characters (e.g., 250000)" min="1" max="500000">
+        </div>
+
+        <!-- New form group for Timeout -->
+        <div class="form-group">
+            <label for="timeout">Timeout (milliseconds, default: 20000)</label>
+            <input type="number" id="timeout" placeholder="Enter timeout in milliseconds (e.g., 20000)" min="1">
+        </div>
+
+        <!-- New form group for Allow Backward Links -->
+        <div class="form-group">
+            <label for="allowBackwardLinks">Allow Backward Links</label>
+            <select id="allowBackwardLinks">
+                <option value="true">True</option>
+                <option value="false">False</option>
+            </select>
+        </div>
+
+        <!-- New form group for Wait For -->
+        <div class="form-group">
+            <label for="waitFor">Wait For (milliseconds, default: 2000)</label>
+            <input type="number" id="waitFor" placeholder="Enter wait time in milliseconds (e.g., 2000)" min="0">
+        </div>
+
+        <!-- New form group for Model -->
+        <div class="form-group">
+            <label for="model">Model</label>
+            <select id="model">
+                <option value="gpt-4o-mini">gpt-4o-mini</option>
+                <option value="gpt-4o">gpt-4o</option>
+            </select>
+        </div>
+        
+        <button id="save">Save Settings</button>
+
+        <div id="successMessage" class="success-message">
+            Settings saved successfully!
+        </div>
+
+        <div class="info-text">
+            Your API keys and settings are stored securely in your browser's local storage and are only used to make requests to the respective services.
+        </div>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+</html>

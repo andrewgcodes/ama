@@ -5,6 +5,8 @@
 
 A Chrome extension that lets you ask questions about any website you're visiting, powered by [Firecrawl](https://www.firecrawl.dev/) and GPT-4o-mini. This extension crawls web pages, processes their content, and enables natural language interactions about the site's content.
 
+[Install](https://chromewebstore.google.com/detail/ask-me-anything-ai/mibdopjlbhdneiiggpbbemfllnlafmoo) from Chrome Web Store
+
 ## 🌟 Features
 
 - 🤖 Ask questions about any website's content in natural language

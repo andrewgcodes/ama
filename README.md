@@ -217,8 +217,6 @@ We welcome contributions! Areas of focus:
 - Enhanced error handling
 - Documentation improvements
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
 ## 📘 API Documentation
 
 ### Firecrawl API

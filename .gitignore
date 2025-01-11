@@ -1,1 +1,26 @@
-**/.DS_Store
+# System files
+.bash_history
+.bash_logout
+.bash_profile
+.bashrc
+.browser_data_dir/
+.cache/
+.cargo/
+.config/
+.gitconfig
+.local/
+.npm/
+.nvm/
+.pki/
+.pyenv/
+.rustup/
+.ssh/
+.sudo_as_admin_successful
+.tmux.conf
+full_outputs/
+screenshots/
+
+# Keep workflow file
+!.github/
+!.github/workflows/
+!.github/workflows/devin-review.yml

@@ -1,0 +1,148 @@
+name: Devin PR Review
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+# Explicitly set permissions to read-only
+permissions:
+  contents: read
+  pull-requests: write  # Needed to comment on PRs
+  actions: read
+  checks: read
+  issues: read
+  repository-projects: read
+  statuses: read
+
+jobs:
+  review-pr:
+    name: Review Pull Request
+    runs-on: ubuntu-latest
+    timeout-minutes: 10  # Prevent long-running jobs
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for proper diff analysis
+          ref: ${{ github.event.pull_request.head.sha }}  # Checkout PR head
+          
+      - name: Validate PR Size
+        id: validate-pr
+        run: |
+          # Get number of changed files
+          NUM_FILES=$(gh pr view ${{ github.event.pull_request.number }} --json files --jq '.files | length')
+          if [ "$NUM_FILES" -gt 50 ]; then
+            echo "PR is too large ($NUM_FILES files). Skipping Devin review."
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "skip=false" >> $GITHUB_OUTPUT
+          
+      - name: Create Devin Session
+        if: steps.validate-pr.outputs.skip != 'true'
+        id: create-session
+        run: |
+          # Create session with proper error handling
+          response=$(curl -s -w "\n%{http_code}" -X POST "https://api.devin.ai/v1/sessions" \
+            -H "Authorization: Bearer ${{ secrets.DEVIN_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "prompt": "Review PR #${{ github.event.pull_request.number }} at ${{ github.repository }}. Focus on code quality, security issues, and best practices. DO NOT make any commits or push any changes.",
+              "idempotent": true
+            }')
+          
+          # Split response into body and status code
+          body=$(echo "$response" | head -n 1)
+          status=$(echo "$response" | tail -n 1)
+          
+          if [ "$status" != "200" ]; then
+            echo "Failed to create Devin session (HTTP $status)"
+            echo "error=true" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Extract session ID using jq
+          session_id=$(echo "$body" | jq -r '.session_id')
+          echo "session_id=$session_id" >> $GITHUB_OUTPUT
+          
+      - name: Poll Devin Session
+        if: steps.validate-pr.outputs.skip != 'true' && steps.create-session.outputs.error != 'true'
+        id: poll-session
+        run: |
+          session_id="${{ steps.create-session.outputs.session_id }}"
+          max_attempts=30
+          attempt=1
+          backoff=1
+          
+          while [ $attempt -le $max_attempts ]; do
+            response=$(curl -s -w "\n%{http_code}" \
+              -H "Authorization: Bearer ${{ secrets.DEVIN_API_KEY }}" \
+              "https://api.devin.ai/v1/session/$session_id")
+            
+            body=$(echo "$response" | head -n 1)
+            status=$(echo "$response" | tail -n 1)
+            
+            if [ "$status" != "200" ]; then
+              echo "Failed to poll session (HTTP $status)"
+              sleep $backoff
+              backoff=$((backoff * 2))
+              attempt=$((attempt + 1))
+              continue
+            fi
+            
+            session_status=$(echo "$body" | jq -r '.status_enum')
+            if [ "$session_status" = "blocked" ] || [ "$session_status" = "stopped" ]; then
+              # Session completed, extract review
+              review=$(echo "$body" | jq -r '.structured_output.review // "No structured review available."')
+              echo "review=$review" >> $GITHUB_OUTPUT
+              break
+            fi
+            
+            if [ $attempt -eq $max_attempts ]; then
+              echo "Timeout waiting for Devin review"
+              echo "error=timeout" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+            
+            sleep $backoff
+            backoff=$((backoff * 2))
+            attempt=$((attempt + 1))
+          done
+          
+      - name: Comment on PR
+        if: steps.validate-pr.outputs.skip != 'true' && steps.create-session.outputs.error != 'true' && steps.poll-session.outputs.error != 'timeout'
+        run: |
+          review="${{ steps.poll-session.outputs.review }}"
+          
+          # Create comment with review results
+          comment="## 🤖 Devin AI Review\n\n"
+          comment+="I've reviewed this pull request and here are my findings:\n\n"
+          comment+="$review\n\n"
+          comment+="---\n"
+          comment+="*Note: This is an automated review by Devin AI. Please consider this feedback alongside human review.*"
+          
+          # Post comment using gh cli
+          echo "$comment" | gh pr comment ${{ github.event.pull_request.number }} --body-file -
+          
+      - name: Handle Skipped Review
+        if: steps.validate-pr.outputs.skip == 'true'
+        run: |
+          comment="## 🤖 Devin AI Review - Skipped\n\n"
+          comment+="This PR is too large for automated review (>50 files changed).\n"
+          comment+="Please consider breaking it down into smaller, more focused changes.\n\n"
+          comment+="---\n"
+          comment+="*Note: This is an automated message from the Devin AI review system.*"
+          
+          echo "$comment" | gh pr comment ${{ github.event.pull_request.number }} --body-file -
+          
+      - name: Handle Errors
+        if: failure() || steps.create-session.outputs.error == 'true' || steps.poll-session.outputs.error == 'timeout'
+        run: |
+          comment="## ❌ Devin AI Review - Error\n\n"
+          comment+="Sorry, I encountered an error while trying to review this PR.\n"
+          comment+="This could be due to API issues or timeout. Please try again later.\n\n"
+          comment+="---\n"
+          comment+="*Note: This is an automated message from the Devin AI review system.*"
+          
+          echo "$comment" | gh pr comment ${{ github.event.pull_request.number }} --body-file -

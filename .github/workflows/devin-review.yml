@@ -42,6 +42,8 @@ jobs:
       - name: Create Devin Session
         if: steps.validate-pr.outputs.skip != 'true'
         id: create-session
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
         run: |
           response=$(curl -s -w "\n%{http_code}" -X POST "https://api.devin.ai/v1/sessions" \
             -H "Authorization: Bearer ${{ secrets.DEVIN_API_KEY }}" \
@@ -66,6 +68,8 @@ jobs:
       - name: Poll Devin Session
         if: steps.validate-pr.outputs.skip != 'true' && steps.create-session.outputs.error != 'true'
         id: poll-session
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
         run: |
           session_id="${{ steps.create-session.outputs.session_id }}"
           max_attempts=30

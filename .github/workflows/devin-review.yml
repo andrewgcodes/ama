@@ -28,6 +28,8 @@ jobs:
 
       - name: Validate PR Size
         id: validate-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           NUM_FILES=$(gh pr view ${{ github.event.pull_request.number }} --json files --jq '.files | length')
           if [ "$NUM_FILES" -gt 50 ]; then
@@ -106,6 +108,8 @@ jobs:
 
       - name: Comment on PR
         if: steps.validate-pr.outputs.skip != 'true' && steps.create-session.outputs.error != 'true' && steps.poll-session.outputs.error != 'timeout'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           review="${{ steps.poll-session.outputs.review }}"
           
@@ -119,6 +123,8 @@ jobs:
 
       - name: Handle Skipped Review
         if: steps.validate-pr.outputs.skip == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           comment="## 🤖 Devin AI Review - Skipped\n\n"
           comment+="This PR is too large for automated review (>50 files changed).\n"
@@ -130,6 +136,8 @@ jobs:
 
       - name: Handle Errors
         if: failure() || steps.create-session.outputs.error == 'true' || steps.poll-session.outputs.error == 'timeout'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           comment="## ❌ Devin AI Review - Error\n\n"
           comment+="Sorry, I encountered an error while trying to review this PR.\n"

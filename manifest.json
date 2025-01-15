@@ -1,4 +1,15 @@
 {
+    /**
+     * manifest.json - Chrome Extension Configuration File
+     * 
+     * This manifest defines the extension's core configuration:
+     * - Uses Manifest V3 for modern Chrome extension features
+     * - Requires activeTab permission for current page access
+     * - Uses storage permission for saving settings and history
+     * - Defines background service worker (background.js)
+     * - Sets up popup UI (popup.html) and options page
+     * - Configures extension icons in various sizes
+     */
     "manifest_version": 3,
     "name": "Ask Me Anything AI",
     "version": "1.1",

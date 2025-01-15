@@ -1,3 +1,23 @@
+/**
+ * background.js - Background Service Worker for Ask Me Anything AI Chrome Extension
+ * 
+ * This script handles the core functionality of the extension including:
+ * - Web crawling via Firecrawl API
+ * - Question answering via OpenAI's API
+ * - Message passing between popup and background contexts
+ * - Storage management for crawl data and conversation histories
+ */
+
+/**
+ * Listens for messages from the popup script to handle crawl operations
+ * @param {Object} request - The message request object
+ * @param {string} request.action - The action to perform ('startCrawl' or 'checkCrawlStatus')
+ * @param {string} [request.url] - The URL to crawl (required for 'startCrawl' action)
+ * @param {string} [request.crawlId] - The crawl ID to check (required for 'checkCrawlStatus' action)
+ * @param {Object} sender - Details about the message sender
+ * @param {function} sendResponse - Callback to send a response back to the sender
+ * @returns {boolean} - Returns true to indicate async response handling
+ */
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     if (request.action === 'startCrawl') {
         startCrawl(request.url).then(response => {
@@ -11,6 +31,13 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     return true;
 });
 
+/**
+ * Handles long-lived connections from the popup for streaming responses
+ * @param {Port} port - The connection port from the popup
+ * 
+ * Listens for the 'openaiStream' connection and handles 'askQuestionStream'
+ * messages by streaming AI responses back to the popup.
+ */
 chrome.runtime.onConnect.addListener(function(port) {
     if (port.name === 'openaiStream') {
         port.onMessage.addListener(function(request) {
@@ -21,6 +48,27 @@ chrome.runtime.onConnect.addListener(function(port) {
     }
 });
 
+/**
+ * Initiates a web crawl for the specified URL using the Firecrawl API
+ * @param {string} url - The URL to start crawling from
+ * @returns {Promise<Object>} A promise that resolves to:
+ *   @returns {boolean} success - Whether the crawl was successfully started
+ *   @returns {string} [crawlId] - The ID of the started crawl (if successful)
+ *   @returns {string} [error] - Error message (if unsuccessful)
+ * 
+ * The function also:
+ * - Retrieves and uses configuration from chrome.storage.local
+ * - Initializes conversation history for the domain
+ * - Stores crawl ID and domain in chrome.storage.local
+ * 
+ * Configuration options used:
+ * - firecrawlKey: API key for Firecrawl service
+ * - maxDepth: Maximum crawl depth (default: 3)
+ * - limit: Maximum pages to crawl (default: 50)
+ * - timeout: Request timeout in ms (default: 20000)
+ * - allowBackwardLinks: Whether to follow backward links (default: true)
+ * - waitFor: Wait time in ms before scraping (default: 2000)
+ */
 function startCrawl(url) {
     return new Promise((resolve, reject) => {
         chrome.storage.local.get(['firecrawlKey', 'maxDepth', 'limit', 'timeout', 'allowBackwardLinks', 'waitFor'], function(result) {
@@ -85,6 +133,18 @@ function startCrawl(url) {
 }
 
 
+/**
+ * Checks the status of an ongoing crawl operation
+ * @param {string} crawlId - The ID of the crawl to check
+ * @returns {Promise<Object>} A promise that resolves to:
+ *   @returns {string} status - Current status ('completed', 'scraping', or 'error')
+ *   @returns {number} [total] - Total number of pages to crawl (for 'completed' or 'scraping' status)
+ *   @returns {number} [completed] - Number of pages crawled (for 'completed' or 'scraping' status)
+ *   @returns {string} [error] - Error message (if status is 'error')
+ * 
+ * When status is 'completed', the crawled data is stored in chrome.storage.local
+ * under the 'crawlData' key for use by the question-answering system.
+ */
 function checkCrawlStatus(crawlId) {
     return new Promise((resolve, reject) => {
         chrome.storage.local.get(['firecrawlKey'], function(result) {
@@ -120,6 +180,27 @@ function checkCrawlStatus(crawlId) {
     });
 }
 
+/**
+ * Processes a user question using the crawled website data and OpenAI's API
+ * @param {string} question - The user's question to answer
+ * @param {Port} port - Chrome runtime port for streaming the response
+ * 
+ * The function:
+ * - Retrieves crawled data and conversation history from storage
+ * - Formats website content with page titles and URLs
+ * - Streams the AI response back to the popup via the port
+ * - Updates conversation history with the Q&A pair
+ * 
+ * Messages sent through port:
+ * - {string} answer - Chunks of the streaming response
+ * - {boolean} done - Indicates completion of the response
+ * - {string} error - Error message if something goes wrong
+ * 
+ * Configuration options used:
+ * - openaiKey: API key for OpenAI service
+ * - maxContentLength: Maximum characters of content to send (default: 250000)
+ * - model: OpenAI model to use (default: 'gpt-4o-mini')
+ */
 function askQuestionStream(question, port) {
     chrome.storage.local.get(['openaiKey', 'crawlData', 'currentDomain', 'conversationHistories', 'maxContentLength', 'model'], function(result) {
         const openaiKey = result.openaiKey;

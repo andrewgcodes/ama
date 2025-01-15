@@ -1,3 +1,34 @@
+/**
+ * options.js - Configuration Manager for Ask Me Anything AI Chrome Extension
+ * 
+ * This script handles the extension's configuration interface, including:
+ * - API key management (Firecrawl and OpenAI)
+ * - Crawl settings configuration
+ * - Input validation
+ * - Settings persistence in chrome.storage
+ */
+
+/**
+ * Saves extension configuration when the save button is clicked
+ * @listens click
+ * 
+ * Configuration options:
+ * @param {string} firecrawlKey - API key for Firecrawl service
+ * @param {string} openaiKey - API key for OpenAI service
+ * @param {number} maxDepth - Maximum crawl depth (default: 3)
+ * @param {number} limit - Maximum pages to crawl (default: 50)
+ * @param {number} maxContentLength - Maximum content length in characters (1-500,000)
+ * @param {number} timeout - Request timeout in milliseconds (minimum: 1)
+ * @param {boolean} allowBackwardLinks - Whether to follow backward links
+ * @param {number} waitFor - Wait time before scraping in milliseconds (minimum: 0)
+ * @param {string} model - OpenAI model to use (default: 'gpt-4o-mini')
+ * 
+ * Side effects:
+ * - Validates all inputs
+ * - Shows error messages for invalid inputs
+ * - Updates chrome.storage.local with new settings
+ * - Displays success message on save
+ */
 document.getElementById('save').addEventListener('click', function() {
     const firecrawlKey = document.getElementById('firecrawlKey').value.trim();
     const openaiKey = document.getElementById('openaiKey').value.trim();
@@ -43,6 +74,21 @@ document.getElementById('save').addEventListener('click', function() {
     });
 });
 
+/**
+ * Loads saved configuration when the options page is opened
+ * @listens DOMContentLoaded
+ * 
+ * Retrieves and populates:
+ * - API keys
+ * - Crawl depth and limits
+ * - Content length settings
+ * - Timeout configurations
+ * - Model selection
+ * 
+ * Side effects:
+ * - Reads from chrome.storage.local
+ * - Updates form input values
+ */
 document.addEventListener('DOMContentLoaded', function() {
     chrome.storage.local.get([
         'firecrawlKey',

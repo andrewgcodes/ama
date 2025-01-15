@@ -1,3 +1,21 @@
+/**
+ * @fileoverview Background script for the AMA Chrome extension.
+ * Handles message passing between the popup and content scripts,
+ * manages web crawling through Firecrawl API, and processes
+ * questions through OpenAI's API.
+ */
+
+/**
+ * Listens for messages from other parts of the extension.
+ * Handles 'startCrawl' and 'checkCrawlStatus' actions.
+ * @param {Object} request - The message request object
+ * @param {string} request.action - The action to perform ('startCrawl' or 'checkCrawlStatus')
+ * @param {string} [request.url] - The URL to crawl (for 'startCrawl' action)
+ * @param {string} [request.crawlId] - The crawl ID to check (for 'checkCrawlStatus' action)
+ * @param {Object} sender - Details about the message sender
+ * @param {function} sendResponse - Callback to send a response
+ * @returns {boolean} True to indicate async response handling
+ */
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     if (request.action === 'startCrawl') {
         startCrawl(request.url).then(response => {
@@ -11,6 +29,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     return true;
 });
 
+/**
+ * Handles long-lived connections for streaming responses.
+ * Currently supports the 'openaiStream' connection for real-time
+ * question-answering functionality.
+ * @param {Object} port - The connection port object
+ */
 chrome.runtime.onConnect.addListener(function(port) {
     if (port.name === 'openaiStream') {
         port.onMessage.addListener(function(request) {
@@ -21,6 +45,20 @@ chrome.runtime.onConnect.addListener(function(port) {
     }
 });
 
+/**
+ * Initiates a web crawl for a given URL using the Firecrawl API.
+ * @param {string} url - The URL to start crawling from
+ * @returns {Promise<Object>} A promise that resolves to:
+ *   - success: true/false indicating if crawl started successfully
+ *   - crawlId: string (if success is true) - The ID of the crawl
+ *   - error: string (if success is false) - Error message
+ * @description
+ * This function:
+ * 1. Retrieves configuration from Chrome storage
+ * 2. Validates the Firecrawl API key
+ * 3. Initiates crawl with configured parameters
+ * 4. Stores crawl ID and initializes conversation history
+ */
 function startCrawl(url) {
     return new Promise((resolve, reject) => {
         chrome.storage.local.get(['firecrawlKey', 'maxDepth', 'limit', 'timeout', 'allowBackwardLinks', 'waitFor'], function(result) {
@@ -85,6 +123,18 @@ function startCrawl(url) {
 }
 
 
+/**
+ * Polls the Firecrawl API to check the status of a crawl.
+ * @param {string} crawlId - The ID of the crawl to check
+ * @returns {Promise<Object>} A promise that resolves to:
+ *   - status: string ('completed'|'scraping'|'error')
+ *   - total: number (if status is 'completed' or 'scraping')
+ *   - completed: number (if status is 'completed' or 'scraping')
+ *   - error: string (if status is 'error')
+ * @description
+ * Retrieves the current status of a crawl operation and stores
+ * the crawled data in Chrome storage when completed.
+ */
 function checkCrawlStatus(crawlId) {
     return new Promise((resolve, reject) => {
         chrome.storage.local.get(['firecrawlKey'], function(result) {
@@ -120,6 +170,30 @@ function checkCrawlStatus(crawlId) {
     });
 }
 
+/**
+ * Streams a question to the OpenAI API and retrieves a reply in increments.
+ * @param {string} question - The user's question to be answered
+ * @param {Object} port - Chrome runtime port for streaming data back to the popup
+ * @description
+ * This function:
+ * 1. Retrieves OpenAI key and crawl data from Chrome storage
+ * 2. Prepares conversation context from crawled content
+ * 3. Streams the response from OpenAI's API
+ * 4. Updates conversation history in Chrome storage
+ * 
+ * The function handles streaming by:
+ * - Breaking response into chunks
+ * - Sending incremental updates through the port
+ * - Maintaining conversation history per domain
+ * 
+ * @example
+ * // Usage in message listener:
+ * port.onMessage.addListener(function(request) {
+ *   if (request.action === 'askQuestionStream') {
+ *     askQuestionStream(request.question, port);
+ *   }
+ * });
+ */
 function askQuestionStream(question, port) {
     chrome.storage.local.get(['openaiKey', 'crawlData', 'currentDomain', 'conversationHistories', 'maxContentLength', 'model'], function(result) {
         const openaiKey = result.openaiKey;
@@ -190,6 +264,14 @@ function askQuestionStream(question, port) {
         });
 
         const apiUrl = 'https://api.openai.com/v1/chat/completions';
+        /**
+         * OpenAI API request configuration
+         * @type {Object} Configuration object for the chat completion request
+         * @property {string} model - The GPT model to use
+         * @property {Array<Object>} messages - The conversation history and context
+         * @property {boolean} stream - Whether to stream the response
+         * @property {number} temperature - Controls randomness in the response
+         */
         const data = {
             model: model,  
             messages: messages,

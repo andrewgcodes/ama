@@ -1,3 +1,39 @@
+/**
+ * @fileoverview Options page script for the AMA Chrome extension.
+ * Handles saving and loading of extension settings, including API keys
+ * and crawling parameters. Provides validation and persistence of user
+ * preferences through Chrome's storage API.
+ */
+
+/**
+ * Settings and their purposes:
+ * @typedef {Object} ExtensionSettings
+ * @property {string} firecrawlKey - API key for Firecrawl web crawling service
+ * @property {string} openaiKey - API key for OpenAI's GPT service
+ * @property {number} maxDepth - Maximum depth for crawling (default: 3)
+ * @property {number} limit - Maximum number of pages to crawl (default: 50)
+ * @property {number} maxContentLength - Maximum characters to process (1-500,000)
+ * @property {number} timeout - Page load timeout in milliseconds (min: 1)
+ * @property {boolean} allowBackwardLinks - Whether to follow links to parent pages
+ * @property {number} waitFor - Wait time after page load in ms (min: 0)
+ * @property {string} model - OpenAI model to use (default: 'gpt-4o-mini')
+ */
+
+/**
+ * Event listener for the save button.
+ * Validates and saves user settings to Chrome storage.
+ * @description
+ * Reads all input values, performs validation on numeric fields,
+ * and saves to chrome.storage.local. Shows a success message
+ * that automatically disappears after 3 seconds.
+ * 
+ * Validation rules:
+ * - maxContentLength: 1-500,000 characters
+ * - timeout: minimum 1ms
+ * - waitFor: minimum 0ms
+ * 
+ * Default values are applied for missing or invalid inputs.
+ */
 document.getElementById('save').addEventListener('click', function() {
     const firecrawlKey = document.getElementById('firecrawlKey').value.trim();
     const openaiKey = document.getElementById('openaiKey').value.trim();
@@ -43,6 +79,16 @@ document.getElementById('save').addEventListener('click', function() {
     });
 });
 
+/**
+ * Initializes the options page when DOM content is loaded.
+ * @description
+ * Retrieves saved settings from chrome.storage.local and
+ * populates the form fields with saved values or defaults.
+ * Handles all extension settings:
+ * - API keys (Firecrawl, OpenAI)
+ * - Crawling parameters (depth, limit, timeout)
+ * - Content processing settings (maxLength, model)
+ */
 document.addEventListener('DOMContentLoaded', function() {
     chrome.storage.local.get([
         'firecrawlKey',

@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Ask Me Anything AI",
+    "name": "Pregúntame Cualquier Cosa IA",
     "version": "1.1",
-    "description": "Ask any question about the website you're looking at. Powered by Firecrawl and GPT-4o-mini.",
+    "description": "Haz cualquier pregunta sobre el sitio web que estás visitando. Impulsado por Firecrawl y GPT-4o-mini.",
     "permissions": ["activeTab", "storage"],
     "background": {
       "service_worker": "background.js"

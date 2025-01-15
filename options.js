@@ -1,3 +1,13 @@
+/**
+ * Este archivo maneja la lógica de guardado y carga de configuraciones 
+ * para el panel de opciones de la extensión.
+ * Gestiona las claves API, límites y preferencias del usuario.
+ */
+
+/**
+ * Manejador de eventos para guardar la configuración cuando se hace clic en el botón 'save'.
+ * Valida y almacena todas las configuraciones en el almacenamiento local de Chrome.
+ */
 document.getElementById('save').addEventListener('click', function() {
     const firecrawlKey = document.getElementById('firecrawlKey').value.trim();
     const openaiKey = document.getElementById('openaiKey').value.trim();
@@ -9,17 +19,17 @@ document.getElementById('save').addEventListener('click', function() {
     const waitFor = parseInt(document.getElementById('waitFor').value.trim()) || 2000;
     const model = document.getElementById('model').value || 'gpt-4o-mini';
 
-    // validate inputs
+    // Validar entradas
     if (isNaN(maxContentLength) || maxContentLength < 1 || maxContentLength > 500000) {
-        alert('Please enter a valid max characters value (1 - 500,000).');
+        alert('Por favor, ingrese un valor válido para caracteres máximos (1 - 500,000).');
         return;
     }
     if (isNaN(timeout) || timeout < 1) {
-        alert('Please enter a valid timeout in milliseconds (minimum 1).');
+        alert('Por favor, ingrese un tiempo de espera válido en milisegundos (mínimo 1).');
         return;
     }
     if (isNaN(waitFor) || waitFor < 0) {
-        alert('Please enter a valid wait time in milliseconds (minimum 0).');
+        alert('Por favor, ingrese un tiempo de espera válido en milisegundos (mínimo 0).');
         return;
     }
 
@@ -43,6 +53,10 @@ document.getElementById('save').addEventListener('click', function() {
     });
 });
 
+/**
+ * Manejador de eventos que se ejecuta cuando se carga el documento.
+ * Recupera y establece los valores guardados en la configuración.
+ */
 document.addEventListener('DOMContentLoaded', function() {
     chrome.storage.local.get([
         'firecrawlKey',

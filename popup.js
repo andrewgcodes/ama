@@ -1,10 +1,19 @@
+/**
+ * Este archivo maneja la interfaz de usuario del popup y la interacción con el usuario.
+ * Controla el proceso de rastreo, la visualización del progreso y el chat con GPT.
+ */
+
+/**
+ * Manejador de eventos para iniciar el rastreo cuando se hace clic en el botón 'startCrawl'.
+ * Verifica las claves API antes de comenzar el proceso.
+ */
 document.getElementById('startCrawl').addEventListener('click', function() {
     document.getElementById('startCrawl').disabled = true;
-    document.getElementById('status').innerText = 'Checking API keys...';
+    document.getElementById('status').innerText = 'Verificando claves API...';
 
     chrome.storage.local.get(['firecrawlKey'], function(result) {
         if (!result.firecrawlKey) {
-            document.getElementById('status').innerText = 'Please set your API keys in Settings.';
+            document.getElementById('status').innerText = 'Por favor, configure sus claves API en Configuración.';
             document.getElementById('startCrawl').disabled = false;
         } else {
             startCrawlProcess();
@@ -16,8 +25,12 @@ let fakeProgressInterval;
 let fakeProgress = 0;
 let fakeProgressCompleted = false;
 
+/**
+ * Inicia el proceso de rastreo para la pestaña actual.
+ * Configura la interfaz de usuario, muestra la barra de progreso y comienza el rastreo.
+ */
 function startCrawlProcess() {
-    document.getElementById('status').innerText = 'Starting crawl...';
+    document.getElementById('status').innerText = 'Iniciando rastreo...';
     document.getElementById('progressContainer').style.display = 'block';
     document.getElementById('progressBar').style.width = '0%';
     fakeProgress = 0;
@@ -31,10 +44,10 @@ function startCrawlProcess() {
         const currentUrl = tabs[0].url;
         chrome.runtime.sendMessage({action: 'startCrawl', url: currentUrl}, function(response) {
             if (response.success) {
-                document.getElementById('status').innerText = 'Crawling started...';
+                document.getElementById('status').innerText = 'Rastreo iniciado...';
                 pollCrawlStatus(response.crawlId);
             } else {
-                document.getElementById('status').innerText = 'Error starting crawl: ' + response.error;
+                document.getElementById('status').innerText = 'Error al iniciar el rastreo: ' + response.error;
                 document.getElementById('startCrawl').disabled = false;
                 document.getElementById('progressContainer').style.display = 'none';
                 stopFakeProgressBar();
@@ -44,10 +57,15 @@ function startCrawlProcess() {
     });
 }
 
+/**
+ * Inicia una barra de progreso simulada para mejorar la experiencia del usuario.
+ * Avanza gradualmente hasta el 80% mientras se espera la respuesta real del servidor.
+ * La simulación ayuda a mantener al usuario informado del progreso.
+ */
 function startFakeProgressBar() {
-    const totalDuration = 6000; // 8 seconds
-    const updateInterval = 25; // Update every 100ms
-    const targetProgress = 80; // Fake progress goes up to 80%
+    const totalDuration = 6000; // Duración total en milisegundos
+    const updateInterval = 25; // Actualizar cada 100ms
+    const targetProgress = 80; // Progreso simulado hasta 80%
     const increment = targetProgress / (totalDuration / updateInterval);
 
     fakeProgressInterval = setInterval(() => {
@@ -61,6 +79,10 @@ function startFakeProgressBar() {
     }, updateInterval);
 }
 
+/**
+ * Detiene la barra de progreso simulada.
+ * Se llama cuando el proceso real ha terminado o cuando ocurre un error.
+ */
 function stopFakeProgressBar() {
     if (fakeProgressInterval) {
         clearInterval(fakeProgressInterval);
@@ -68,14 +90,25 @@ function stopFakeProgressBar() {
     }
 }
 
+/**
+ * Actualiza el ancho de la barra de progreso al porcentaje especificado.
+ * 
+ * @param {number} progress - Porcentaje de progreso (0-100)
+ */
 function updateProgressBar(progress) {
     document.getElementById('progressBar').style.width = progress + '%';
 }
 
+/**
+ * Consulta periódicamente el estado del proceso de rastreo.
+ * Actualiza la interfaz de usuario con el progreso y maneja la finalización.
+ * 
+ * @param {string} crawlId - ID único del proceso de rastreo
+ */
 function pollCrawlStatus(crawlId) {
     chrome.runtime.sendMessage({action: 'checkCrawlStatus', crawlId: crawlId}, function(response) {
         if (response.status === 'completed') {
-            document.getElementById('status').innerText = `Crawl completed. ${response.total} pages crawled.`;
+            document.getElementById('status').innerText = `Rastreo completado. ${response.total} páginas rastreadas.`;
             document.getElementById('startCrawl').disabled = false;
 
             updateProgressBar(100);
@@ -90,10 +123,10 @@ function pollCrawlStatus(crawlId) {
 
             chrome.storage.local.set({conversationHistories: {}});
         } else if (response.status === 'scraping') {
-            // Update status message
-            document.getElementById('status').innerText = `Crawling in progress... (${response.completed}/${response.total} pages)`;
+            // Actualizar mensaje de estado con el progreso
+            document.getElementById('status').innerText = `Rastreo en progreso... (${response.completed}/${response.total} páginas)`;
 
-            // Update progress bar after fake progress completes
+            // Actualizar barra de progreso después de completar el progreso simulado
             if (fakeProgressCompleted) {
                 const completed = response.completed || 0;
                 const total = response.total || 1; // Avoid division by zero
@@ -107,13 +140,13 @@ function pollCrawlStatus(crawlId) {
                 pollCrawlStatus(crawlId);
             }, 1000);
         } else if (response.status === 'error') {
-            document.getElementById('status').innerText = 'Error during crawl: ' + response.error;
+            document.getElementById('status').innerText = 'Error durante el rastreo: ' + response.error;
             document.getElementById('startCrawl').disabled = false;
             document.getElementById('progressContainer').style.display = 'none';
             stopFakeProgressBar();
             enableChat();
         } else {
-            document.getElementById('status').innerText = 'Unexpected crawl status.';
+            document.getElementById('status').innerText = 'Estado de rastreo inesperado.';
             document.getElementById('startCrawl').disabled = false;
             document.getElementById('progressContainer').style.display = 'none';
             stopFakeProgressBar();
@@ -134,6 +167,10 @@ document.getElementById('questionInput').addEventListener('keypress', function(e
     }
 });
 
+/**
+ * Envía la pregunta del usuario al servicio GPT y maneja la respuesta en streaming.
+ * Gestiona la interfaz de usuario durante el proceso de pregunta y respuesta.
+ */
 function sendMessage() {
     const question = document.getElementById('questionInput').value.trim();
     if (question === '') {
@@ -168,6 +205,13 @@ function sendMessage() {
     });
 }
 
+/**
+ * Agrega un nuevo mensaje al área de chat.
+ * Crea elementos DOM para mostrar el mensaje y aplica el formato Markdown.
+ * 
+ * @param {string} sender - Origen del mensaje ('user' o 'assistant')
+ * @param {string} text - Contenido del mensaje en formato Markdown
+ */
 function appendMessage(sender, text) {
     const chatSection = document.getElementById('chatSection');
     const messageDiv = document.createElement('div');
@@ -195,6 +239,13 @@ function updateLastAssistantMessage(text) {
     }
 }
 
+/**
+ * Convierte texto en formato Markdown a HTML para su visualización.
+ * Maneja enlaces, negritas y escapa caracteres especiales.
+ * 
+ * @param {string} text - Texto en formato Markdown
+ * @returns {string} - HTML formateado
+ */
 function parseMarkdown(text) {
     let escapedText = text.replace(/[&<>"']/g, function(match) {
         return {
@@ -219,6 +270,13 @@ function parseMarkdown(text) {
     return escapedText;
 }
 
+/**
+ * Actualiza el historial de conversación con una nueva pregunta y respuesta.
+ * Almacena el historial en el almacenamiento local de Chrome por dominio.
+ * 
+ * @param {string} question - Pregunta del usuario
+ * @param {string} answer - Respuesta del asistente
+ */
 function updateConversationHistory(question, answer) {
     chrome.storage.local.get(['conversationHistories', 'currentDomain'], function(result) {
         const domain = result.currentDomain;
@@ -231,6 +289,10 @@ function updateConversationHistory(question, answer) {
     });
 }
 
+/**
+ * Deshabilita la interfaz de chat.
+ * Se utiliza durante el proceso de rastreo o cuando no hay datos disponibles.
+ */
 function disableChat() {
     document.getElementById('questionInput').disabled = true;
     document.getElementById('askQuestion').disabled = true;
@@ -239,6 +301,10 @@ function disableChat() {
     document.getElementById('chatSection').innerHTML = '';
 }
 
+/**
+ * Habilita la interfaz de chat.
+ * Se llama cuando el rastreo ha terminado y los datos están disponibles.
+ */
 function enableChat() {
     document.getElementById('questionInput').disabled = false;
     document.getElementById('askQuestion').disabled = false;
@@ -258,7 +324,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (result.crawlInProgress) {
             disableChat();
-            document.getElementById('status').innerText = 'Crawling in progress...';
+            document.getElementById('status').innerText = 'Rastreo en progreso...';
             document.getElementById('progressContainer').style.display = 'block';
         } else {
             if (conversationHistory.length > 0) {

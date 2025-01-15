@@ -27,12 +27,12 @@ function startCrawl(url) {
             const firecrawlKey = result.firecrawlKey;
             const maxDepth = result.maxDepth || 3;
             const limit = result.limit || 50;
-            const timeout = result.timeout || 20000; // Default timeout in milliseconds
+            const timeout = result.timeout || 20000; // Tiempo de espera predeterminado en milisegundos
             const allowBackwardLinks = typeof result.allowBackwardLinks !== 'undefined' ? result.allowBackwardLinks : true;
-            const waitFor = result.waitFor || 2000; // Default wait time in milliseconds
+            const waitFor = result.waitFor || 2000; // Tiempo de espera predeterminado en milisegundos
 
             if (!firecrawlKey) {
-                resolve({ success: false, error: 'Firecrawl API key not set. Please set it in the options page.' });
+                resolve({ success: false, error: 'Clave API de Firecrawl no configurada. Por favor, configúrela en la página de opciones.' });
                 return;
             }
 
@@ -74,7 +74,7 @@ function startCrawl(url) {
                         });
                     });
                 } else {
-                    resolve({ success: false, error: 'Failed to start crawl. Please check your API key and URL.' });
+                    resolve({ success: false, error: 'Error al iniciar el rastreo. Por favor, verifique su clave API y URL.' });
                 }
             })
             .catch(error => {
@@ -90,7 +90,7 @@ function checkCrawlStatus(crawlId) {
         chrome.storage.local.get(['firecrawlKey'], function(result) {
             const firecrawlKey = result.firecrawlKey;
             if (!firecrawlKey) {
-                resolve({status: 'error', error: 'Firecrawl API key not set.'});
+                resolve({status: 'error', error: 'Clave API de Firecrawl no configurada.'});
                 return;
             }
 
@@ -111,7 +111,7 @@ function checkCrawlStatus(crawlId) {
                 } else if (data.status === 'scraping') {
                     resolve({status: 'scraping', total: data.total, completed: data.completed});
                 } else {
-                    resolve({status: 'error', error: 'Unknown crawl status.'});
+                    resolve({status: 'error', error: 'Estado de rastreo desconocido.'});
                 }
             }).catch(error => {
                 resolve({status: 'error', error: error.message});
@@ -131,12 +131,12 @@ function askQuestionStream(question, port) {
         const model = result.model || 'gpt-4o-mini'; // Default model
 
         if (!openaiKey) {
-            port.postMessage({ error: 'OpenAI API key not set. Please set it in the options page.' });
+            port.postMessage({ error: 'Clave API de OpenAI no configurada. Por favor, configúrela en la página de opciones.' });
             port.disconnect();
             return;
         }
         if (!crawlData) {
-            port.postMessage({ error: 'No crawl data available. Please start the crawl first.' });
+            port.postMessage({ error: 'No hay datos de rastreo disponibles. Por favor, inicie el rastreo primero.' });
             port.disconnect();
             return;
         }
@@ -148,16 +148,16 @@ function askQuestionStream(question, port) {
 
         for (const page of crawlData) {
             if (page.markdown) {
-                const title = page.metadata.title || 'No Title';
-                const url = page.metadata.sourceURL || 'No URL';
-                let pageContent = `Page Title: ${title}\nURL: ${url}\nContent:\n${page.markdown}\n\n`;
+                const title = page.metadata.title || 'Sin Título';
+                const url = page.metadata.sourceURL || 'Sin URL';
+                let pageContent = `Título de Página: ${title}\nURL: ${url}\nContenido:\n${page.markdown}\n\n`;
                 
                 // Truncate each page's content if it exceeds the maximum allowed length per page
                 if (pageContent.length > maxPageLength) {
                     pageContent = pageContent.substring(0, maxPageLength) + '...';
                 }
                 siteContent += pageContent;
-                siteContent += "[END OF PAGE]\n";
+                siteContent += "[FIN DE PÁGINA]\n";
                 // Break if the total content length exceeds the maximum allowed
                 if (siteContent.length > maxContentLength) {
                     siteContent = siteContent.substring(0, maxContentLength) + '...';
@@ -173,11 +173,11 @@ function askQuestionStream(question, port) {
         const messages = [
             {
                 "role": "system",
-                "content": `You are a helpful assistant that answers questions about the content of a website as of ${currentDate}. Use the provided page titles and URLs to reference where information comes from. Include links in Markdown format when appropriate.`
+                "content": `Eres un asistente útil que responde preguntas sobre el contenido de un sitio web a partir de ${currentDate}. Utiliza los títulos de página y URLs proporcionados para referenciar de dónde proviene la información. Incluye enlaces en formato Markdown cuando sea apropiado.`
             },
             {
                 "role": "user",
-                "content": "Here is the content of the website:\n\n" + siteContent
+                "content": "Aquí está el contenido del sitio web:\n\n" + siteContent
             }
         ];
 
@@ -224,7 +224,7 @@ function askQuestionStream(question, port) {
                     if (done) {
                         // Handle the end of the stream
                         port.postMessage({ done: true });
-                        // Update conversation history
+                        // Actualizar el historial de conversación con la pregunta y respuesta
                         conversationHistory.push({ role: 'user', content: question });
                         conversationHistory.push({ role: 'assistant', content: assistantMessage });
                         conversationHistories[domain] = conversationHistory;
